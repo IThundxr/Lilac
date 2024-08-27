@@ -15,10 +15,9 @@ RUN --mount=type=cache,target=/build/target \
 
 ################################################################################
 
-FROM docker.io/debian:bookworm-slim as runtime
+FROM docker.io/debian:bookworm-slim
 
 RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
-COPY --from=runtime /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 WORKDIR /app
 
