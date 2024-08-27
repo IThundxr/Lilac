@@ -22,16 +22,13 @@ async fn rocket() -> _ {
 
 #[post("/webhook/github", data = "<data>")]
 pub async fn github(app: &State<App>, event: Option<GitHubEvent>, data: guards::github::GithubWebhookVerification<IssueCommentWebhookEventPayload_>) -> Status {
-    match event {
-        Some(event) => {
-            match event {
-                GitHubEvent::IssueComment => {
-                    webhook::issues::issue_comment(&app.octocrab, data.payload).await;
-                }
+    if let Some(event) = event {
+        match event {
+            GitHubEvent::IssueComment => {
+                webhook::issues::issue_comment(&app.octocrab, data.payload).await;
             }
-
-            Status::Ok
         }
-        None => Status::BadRequest
     }
+
+    Status::Ok
 }
