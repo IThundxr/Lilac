@@ -1,0 +1,9 @@
+services:
+  lilac:
+    container_name: lilac
+    image: ghcr.io/ithundxr/lilac:main
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
