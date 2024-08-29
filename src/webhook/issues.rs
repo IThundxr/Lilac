@@ -2,7 +2,6 @@ use octocrab::models::issues::{Comment, Issue};
 use octocrab::models::webhook_events::payload::{IssueCommentWebhookEventAction, IssueCommentWebhookEventChanges};
 use octocrab::Octocrab;
 use regex::Regex;
-use rocket::form::validate::Contains;
 use rocket::serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -16,22 +15,32 @@ pub struct IssueCommentWebhookEventPayload_ {
     pub issue: Issue,
 }
 
+const REGEXES: Vec<Regex> = vec![
+    Regex::new(r"https?://(www\.)?(box|dropbox|mediafire|sugarsync|tresorit|hightail|opentext|sharefile|citrixsharefile|icloud|onedrive|1drv)\.com/[^\s)]+").unwrap(),
+    Regex::new(r"https?://drive\.google\.com/[^\s)]+").unwrap(),
+    Regex::new(r"https?://(www\.)?(bit\.ly|t\.co|tinyurl\.com|goo\.gl|ow\.ly|buff\.ly|is\.gd|soo\.gd|t2mio|bl\.ink|clck\.ru|shorte\.st|cutt\.ly|v\.gd|qr\.ae|rb\.gy|rebrand\.ly|tr\.im|shorturl\.at|lnkd\.in)/[^\s)]+").unwrap()
+];
+
 pub async fn issue_comment(octocrab: &Octocrab, payload: IssueCommentWebhookEventPayload_) {
     if payload.action == IssueCommentWebhookEventAction::Created ||
         payload.action == IssueCommentWebhookEventAction::Edited {
         if let Some(body) = &payload.comment.body {
-            if body.contains("mediafire") {
-                if let Ok((owner, repo)) = extract_repository(payload.issue.repository_url.clone()) {
-                    let installation = octocrab.apps()
-                        .get_repository_installation(&owner, &repo)
-                        .await
-                        .unwrap();
+            let mut updated_body = body;
+            for regex in REGEXES {
+                if regex.is_match(body) {
+                    updated_body = &regex.replace(body, "[Potentially unsafe link removed]").to_string();
+                    if let Ok((owner, repo)) = extract_repository(payload.issue.repository_url.clone()) {
+                        let installation = octocrab.apps()
+                            .get_repository_installation(&owner, &repo)
+                            .await
+                            .unwrap();
 
-                    let _ = octocrab
-                        .installation(installation.id)
-                        .issues(owner, repo)
-                        .delete_comment(payload.comment.id)
-                        .await;
+                        let _ = octocrab
+                            .installation(installation.id)
+                            .issues(owner, repo)
+                            .update_comment(payload.comment.id, updated_body)
+                            .await;
+                    }
                 }
             }
         }
