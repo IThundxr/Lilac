@@ -15,18 +15,18 @@ pub struct IssueCommentWebhookEventPayload_ {
     pub issue: Issue,
 }
 
-const REGEXES: Vec<Regex> = vec![
-    Regex::new(r"https?://(www\.)?(box|dropbox|mediafire|sugarsync|tresorit|hightail|opentext|sharefile|citrixsharefile|icloud|onedrive|1drv)\.com/[^\s)]+").unwrap(),
-    Regex::new(r"https?://drive\.google\.com/[^\s)]+").unwrap(),
-    Regex::new(r"https?://(www\.)?(bit\.ly|t\.co|tinyurl\.com|goo\.gl|ow\.ly|buff\.ly|is\.gd|soo\.gd|t2mio|bl\.ink|clck\.ru|shorte\.st|cutt\.ly|v\.gd|qr\.ae|rb\.gy|rebrand\.ly|tr\.im|shorturl\.at|lnkd\.in)/[^\s)]+").unwrap()
-];
-
 pub async fn issue_comment(octocrab: &Octocrab, payload: IssueCommentWebhookEventPayload_) {
     if payload.action == IssueCommentWebhookEventAction::Created ||
         payload.action == IssueCommentWebhookEventAction::Edited {
         if let Some(body) = &payload.comment.body {
+            let regexes = vec![
+                Regex::new(r"https?://(www\.)?(box|dropbox|mediafire|sugarsync|tresorit|hightail|opentext|sharefile|citrixsharefile|icloud|onedrive|1drv)\.com/[^\s)]+").unwrap(),
+                Regex::new(r"https?://drive\.google\.com/[^\s)]+").unwrap(),
+                Regex::new(r"https?://(www\.)?(bit\.ly|t\.co|tinyurl\.com|goo\.gl|ow\.ly|buff\.ly|is\.gd|soo\.gd|t2mio|bl\.ink|clck\.ru|shorte\.st|cutt\.ly|v\.gd|qr\.ae|rb\.gy|rebrand\.ly|tr\.im|shorturl\.at|lnkd\.in)/[^\s)]+").unwrap()
+            ];
+
             let mut updated_body = body;
-            for regex in REGEXES {
+            for regex in regexes {
                 if regex.is_match(body) {
                     updated_body = &regex.replace(body, "[Potentially unsafe link removed]").to_string();
                     if let Ok((owner, repo)) = extract_repository(payload.issue.repository_url.clone()) {
