@@ -25,10 +25,8 @@ pub async fn issue_comment(octocrab: &Octocrab, payload: IssueCommentWebhookEven
                 Regex::new(r"https?://(www\.)?(bit\.ly|t\.co|tinyurl\.com|goo\.gl|ow\.ly|buff\.ly|is\.gd|soo\.gd|t2mio|bl\.ink|clck\.ru|shorte\.st|cutt\.ly|v\.gd|qr\.ae|rb\.gy|rebrand\.ly|tr\.im|shorturl\.at|lnkd\.in)/[^\s)]+").unwrap()
             ];
 
-            let mut updated_body = body;
             for regex in regexes {
                 if regex.is_match(body) {
-                    updated_body = &regex.replace(body, "[Potentially unsafe link removed]").to_string();
                     if let Ok((owner, repo)) = extract_repository(payload.issue.repository_url.clone()) {
                         let installation = octocrab.apps()
                             .get_repository_installation(&owner, &repo)
@@ -38,7 +36,7 @@ pub async fn issue_comment(octocrab: &Octocrab, payload: IssueCommentWebhookEven
                         let _ = octocrab
                             .installation(installation.id)
                             .issues(owner, repo)
-                            .update_comment(payload.comment.id, updated_body)
+                            .update_comment(payload.comment.id, &regex.replace(body, "[Potentially unsafe link removed]").to_string())
                             .await;
                     }
                 }
